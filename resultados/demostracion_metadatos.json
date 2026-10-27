@@ -1,0 +1,27 @@
+{
+  "ejecutado_utc": "2026-10-23T16:30:56.625430+00:00",
+  "casos": [
+    {
+      "url": "example.org",
+      "availability_api": {
+        "status": "200",
+        "available": true,
+        "url": "http://web.archive.org/web/20261023091418/https://example.org/",
+        "timestamp": "20261023091418"
+      },
+      "metadatos": {
+        "url": "example.org",
+        "titulo": "Example Domain",
+        "texto": "Example Domain This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.",
+        "fecha_copia": "20261023091418"
+      },
+      "resultado": "metadatos_recuperados"
+    },
+    {
+      "url": "linkwards-no-such-host.invalid",
+      "availability_api": null,
+      "metadatos": null,
+      "resultado": "sin_metadatos_utiles"
+    }
+  ]
+}

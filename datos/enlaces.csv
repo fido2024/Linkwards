@@ -1,1 +1,7 @@
-id,url_vieja,url_nueva_correcta,tipo_cambio,notas
+﻿id;url_vieja;url_nueva_correcta;tipo_cambio;notas
+1;animeflv.net;animeflv.or.at;extension;PENDIENTE confirmar con fuente oficial del sitio
+2;sharelatex.com;overleaf.com;nombre_completo;Anuncio oficial de Overleaf 20-07-2017: ShareLaTeX se une a Overleaf (overleaf.com/blog/518-exciting-news-sharelatex-is-joining-overleaf)
+3;travis-ci.org;travis-ci.com;extension;Migracion oficial de Travis CI y cierre de travis-ci.org en 2021 (docs.travis-ci.com/user/migrate/open-source-repository-migration)
+4;springerlink.com;link.springer.com;plataforma;Springer migro SpringerLink a una nueva plataforma en noviembre de 2012 (ver imperial.ac.uk/news/115793/springerlink-migrates-improved-platform-friday-16/)
+5;pypi.python.org;pypi.org;plataforma;Anuncio oficial de PyPI 16-04-2018 (blog.python.org/2018/04/new-pypi-launched-legacy-pypi-shutting.html)
+6;interscience.wiley.com;onlinelibrary.wiley.com;nombre_completo;Wiley InterScience reemplazado por Wiley Online Library en agosto de 2010 (liblicense.crl.edu/ListArchives/1008/msg00012.html)

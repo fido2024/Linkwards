@@ -1,0 +1,7 @@
+﻿id,url_vieja,url_nueva_correcta,estado,detalle,cantidad_candidatos,correcta_en_candidatos,rango_busqueda,rango_heuristico,top1_busqueda,top5_busqueda,top1_heuristico,top5_heuristico,primer_resultado_busqueda,primer_resultado_heuristico,primer_resultado_cambio,duracion_segundos
+1,animeflv.net,animeflv.or.at,evaluado,,10,True,3,1,False,True,True,True,https://animeflv.gr/,https://animeflv.or.at/,True,4.039214
+2,sharelatex.com,overleaf.com,evaluado,,10,False,,,False,False,False,False,https://awesome-docker-compose.com/sharelatex,https://x.com/sharelatex,True,0.004955
+3,travis-ci.org,travis-ci.com,evaluado,,10,False,,,False,False,False,False,https://planetpython.org/,https://www.sans.org/cyber-security-courses/detection-engineering-siem-analytics,True,4.383213
+4,springerlink.com,link.springer.com,evaluado,,7,True,2,1,False,True,True,True,https://www.offers.com/stores/link-springer,https://link.springer.com/brands/springer,True,3.55468
+5,pypi.python.org,pypi.org,evaluado,,10,False,,,False,False,False,False,https://libhunt.com/posts/1225374-python-package-index-recursive-package-dependency-resolver,http://docs.python.org/3.3/distutils/packageindex.html,True,4.869617
+6,interscience.wiley.com,onlinelibrary.wiley.com,evaluado,,5,False,,,False,False,False,False,https://www.iitr.ac.in/rti/suo_moto/annual_reports/Annual_Report_2017-18.pdf,https://de.linkedin.com/in/reiner-klimesch-6a56202,True,5.573848

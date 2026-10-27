@@ -1,0 +1,6 @@
+id,url_vieja,tipo_cambio,copia_archive,vieja_codigo,vieja_final,nueva_codigo,veredicto
+1,elgenero.com,extension,20241102043126,,SSLError,200,BUENO
+2,animeflv.net,extension,20260826204650,522,https://animeflv.net/,522,REVISAR (la URL nueva no responde)
+3,jkanime.com,extension,20260413104623,,SSLError,200,BUENO
+4,sharelatex.com,nombre_completo,20260218094203,200,https://www.overleaf.com/,200,FACIL (la URL vieja aun redirige a la nueva)
+5,travis-ci.org,extension,20230318154817,200,https://www.travis-ci.com/,200,FACIL (la URL vieja aun redirige a la nueva)

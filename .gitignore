@@ -1,6 +1,17 @@
+# Entorno y secretos
 .venv/
-__pycache__/
-*.pyc
 .env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Caches del experimento
 datos/cache/*
 !datos/cache/.gitkeep
+
+# Archivos locales
+.streamlit/secrets.toml

@@ -1,0 +1,7 @@
+﻿id,url_vieja,url_nueva_correcta,estado,detalle,cantidad_candidatos,correcta_en_candidatos,rango_busqueda,rango_heuristico,top1_busqueda,top5_busqueda,top1_heuristico,top5_heuristico,primer_resultado_busqueda,primer_resultado_heuristico,primer_resultado_cambio,duracion_segundos
+1,animeflv.net,animeflv.or.at,evaluado,,10,True,2,2,False,True,False,True,https://www.scribd.com/document/1059808217/Ver-Anime-Online-HD-AnimeFLV-2,https://animeflv.ar/,True,0.001508
+2,sharelatex.com,overleaf.com,evaluado,,7,True,4,3,False,True,False,True,http://sharelatex.lns.mit.edu/login,http://sharelatex.lns.mit.edu/login,False,0.000903
+3,travis-ci.org,travis-ci.com,evaluado,,10,True,3,1,False,True,True,True,https://community.ibm.com/community/user/wasdevops/blogs/ashish-kothekar/2023/04/25/travisci-introduction,https://www.travis-ci.com/education,True,0.000897
+4,springerlink.com,link.springer.com,evaluado,,10,True,5,1,False,True,True,True,https://unimelb.libguides.com/c.php?g=932390&p=7067305,http://link.springer.com/,True,0.000964
+5,pypi.python.org,pypi.org,evaluado,,10,False,,,False,False,False,False,https://support.microsoft.com/en-us/excel/functions/index-function,https://ccpi.org/,True,0.000918
+6,interscience.wiley.com,onlinelibrary.wiley.com,evaluado,,10,True,7,2,False,False,False,True,https://acrjournals.onlinelibrary.wiley.com/hub/journal/21514658/front_index_page_content.htm,https://authors.wiley.com/,True,0.000862
