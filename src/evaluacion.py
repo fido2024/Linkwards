@@ -22,6 +22,7 @@ from src.puntuacion import VARIANTES, ordenar_candidatos
 RUTA_CSV = "datos/enlaces.csv"
 RUTA_RESULTADOS = "resultados"
 MODO = candidatos_mod.MODO_PREDETERMINADO
+VARIANTE_PREDETERMINADA = "levenshtein"
 COLUMNAS_RESULTADO = [
     "id", "url_vieja", "url_nueva_correcta", "estado", "detalle",
     "cantidad_candidatos", "correcta_en_candidatos", "rango_busqueda",
@@ -78,7 +79,7 @@ def _bool_o_vacio(valor):
     return "" if valor is None else bool(valor)
 
 
-def _procesar_registro(fila, buscar_faltantes, variante="rapidfuzz", modo=MODO):
+def _procesar_registro(fila, buscar_faltantes, variante=VARIANTE_PREDETERMINADA, modo=MODO):
     inicio = time.perf_counter()
     identificador = str(fila.get("id", "")).strip()
     vieja = str(fila.get("url_vieja", "")).strip()
@@ -226,7 +227,7 @@ def evaluar(
     ruta_csv=RUTA_CSV,
     buscar_faltantes=False,
     directorio_resultados=RUTA_RESULTADOS,
-    variante="rapidfuzz",
+    variante=VARIANTE_PREDETERMINADA,
     modo=MODO,
 ):
     """Evalúa la colección etiquetada y guarda CSV por enlace y JSON agregado.
@@ -287,7 +288,10 @@ def main():
     parser = argparse.ArgumentParser(description="Evalúa el ordenamiento de candidatos de Linkwards.")
     parser.add_argument("--csv", default=RUTA_CSV, help="CSV de enlaces etiquetados")
     parser.add_argument("--resultados", default=RUTA_RESULTADOS, help="Carpeta de salida")
-    parser.add_argument("--variante", choices=VARIANTES, default="rapidfuzz", help="Algoritmo de similitud")
+    parser.add_argument(
+        "--variante", choices=VARIANTES, default=VARIANTE_PREDETERMINADA,
+        help="Algoritmo de similitud (predeterminado: levenshtein)",
+    )
     parser.add_argument("--modo", choices=candidatos_mod.MODOS, default=MODO, help="Modo de consulta; predeterminado: titulo+dominio")
     parser.add_argument(
         "--buscar-faltantes", action="store_true",

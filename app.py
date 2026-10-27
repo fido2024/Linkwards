@@ -1,5 +1,8 @@
 """Interfaz Streamlit del prototipo Linkwards."""
+import csv
+
 import streamlit as st
+from src.datos import dominio, leer_enlaces
 
 from src.interfaz import (
     candidatos_para_tabla,
@@ -7,6 +10,8 @@ from src.interfaz import (
     formatear_fecha_captura,
     recuperar,
 )
+
+VARIANTE_PUNTUACION = "levenshtein"
 
 
 st.set_page_config(page_title="Linkwards", page_icon="↗", layout="wide")
@@ -37,20 +42,7 @@ st.markdown(
 )
 st.divider()
 
-with st.form("recuperacion_form"):
-    url_entrada = st.text_input(
-        "URL antigua",
-        placeholder="https://sitio-antiguo.example/articulo",
-        help="Puedes incluir el esquema http:// o https://; si lo omites se usará HTTPS.",
-    )
-    iniciar = st.form_submit_button("Recuperar URL", type="primary")
-
-if iniciar:
-    with st.spinner("Consultando metadatos y preparando candidatos…"):
-        st.session_state["linkwards_resultado"] = recuperar(url_entrada)
-
-resultado = st.session_state.get("linkwards_resultado")
-if resultado:
+def mostrar_resultado(resultado, url_entrada):
     estado = resultado["estado"]
     detalle = resultado.get("detalle", "")
     if estado == "completado":
@@ -88,7 +80,8 @@ if resultado:
     items = resultado.get("candidatos", [])
     if items:
         st.subheader("Candidatos recuperados")
-        st.caption("Ordenados de mayor a menor puntuación heurística.")
+        variante = resultado.get("variante", VARIANTE_PUNTUACION)
+        st.caption(f"Ordenados de mayor a menor puntuación heurística · variante {variante}.")
         st.dataframe(
             candidatos_para_tabla(items),
             hide_index=True,
@@ -100,10 +93,95 @@ if resultado:
         )
         st.markdown(
             '<p class="lw-note">La puntuación combina señales de dominio, título y '
-            'proximidad. Es un indicador heurístico de similitud, no una probabilidad '
-            'estadística de que el candidato sea la URL correcta.</p>',
+            'proximidad mediante la variante Levenshtein seleccionada. Es un indicador '
+            'heurístico de similitud, no una probabilidad estadística de éxito.</p>',
             unsafe_allow_html=True,
         )
+
+
+st.subheader("Conjunto experimental de enlaces")
+st.caption(
+    "Estos registros pertenecen al preexperimento académico y se cargan desde "
+    "datos/enlaces.csv. La interfaz permite probarlos, pero no modificar ese archivo."
+)
+
+try:
+    enlaces_experimentales = leer_enlaces()
+except (OSError, UnicodeError, csv.Error, ValueError) as error:
+    enlaces_experimentales = None
+    st.error(f"No se pudo leer el conjunto experimental de datos/enlaces.csv: {error}")
+
+if enlaces_experimentales is not None:
+    if not enlaces_experimentales:
+        st.info("El CSV experimental no contiene registros utilizables.")
+    else:
+        filas_tabla = []
+        for fila in enlaces_experimentales:
+            url_vieja = str(fila.get("url_vieja", "")).strip()
+            try:
+                dominio_origen = dominio(url_vieja) if url_vieja else ""
+            except (AttributeError, ValueError):
+                dominio_origen = ""
+            filas_tabla.append({
+                "ID": fila.get("id", ""),
+                "URL antigua": url_vieja,
+                "Dominio de origen": dominio_origen,
+                "Destino esperado": fila.get("url_nueva_correcta", ""),
+                "Tipo de cambio": fila.get("tipo_cambio", ""),
+            })
+
+        st.dataframe(filas_tabla, hide_index=True, use_container_width=True)
+        indices = list(range(len(enlaces_experimentales)))
+        indice_seleccionado = st.selectbox(
+            "Selecciona un enlace del preexperimento",
+            options=indices,
+            format_func=lambda indice: (
+                f"ID {enlaces_experimentales[indice].get('id', indice + 1)} · "
+                f"{enlaces_experimentales[indice].get('url_vieja', '')}"
+            ),
+            key="enlace_experimental_seleccionado",
+        )
+        enlace_seleccionado = enlaces_experimentales[indice_seleccionado]
+        url_seleccionada = str(enlace_seleccionado.get("url_vieja", "")).strip()
+        st.markdown(f"**URL antigua seleccionada:** `{url_seleccionada}`")
+
+        with st.form("recuperacion_experimental_form"):
+            probar = st.form_submit_button(
+                "Probar recuperación con Levenshtein", type="primary"
+            )
+        if probar:
+            with st.spinner("Consultando metadatos y preparando candidatos…"):
+                st.session_state["linkwards_resultado_experimental"] = recuperar(
+                    url_seleccionada,
+                    variante=VARIANTE_PUNTUACION,
+                    url_metadatos=url_seleccionada,
+                )
+            st.session_state["linkwards_resultado_experimental_id"] = str(
+                enlace_seleccionado.get("id", indice_seleccionado)
+            )
+
+        resultado_experimental = st.session_state.get("linkwards_resultado_experimental")
+        id_resultado = st.session_state.get("linkwards_resultado_experimental_id")
+        id_seleccionado = str(enlace_seleccionado.get("id", indice_seleccionado))
+        if resultado_experimental and id_resultado == id_seleccionado:
+            mostrar_resultado(resultado_experimental, url_seleccionada)
+
+with st.expander("Probar otra URL con Levenshtein"):
+    with st.form("recuperacion_manual_form"):
+        url_manual = st.text_input(
+            "URL antigua",
+            placeholder="https://sitio-antiguo.example/articulo",
+            help="Puedes incluir http:// o https://; si lo omites se usará HTTPS.",
+        )
+        iniciar_manual = st.form_submit_button("Recuperar URL")
+    if iniciar_manual:
+        with st.spinner("Consultando metadatos y preparando candidatos…"):
+            st.session_state["linkwards_resultado_manual"] = recuperar(
+                url_manual, variante=VARIANTE_PUNTUACION
+            )
+    resultado_manual = st.session_state.get("linkwards_resultado_manual")
+    if resultado_manual:
+        mostrar_resultado(resultado_manual, url_manual)
 
 st.divider()
 st.subheader("Evaluación experimental")

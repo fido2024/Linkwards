@@ -85,6 +85,7 @@ class EvaluacionTests(unittest.TestCase):
         with patch("src.candidatos._buscar", side_effect=AssertionError("no debe buscar")), patch("builtins.print"):
             resumen = evaluacion.evaluar(ruta_csv, directorio_resultados=self.salida)
 
+        self.assertEqual(resumen["variante_puntuacion"], "levenshtein")
         self.assertEqual(resumen["registros_csv"], 5)
         self.assertEqual(resumen["registros_evaluables_con_respuesta"], 2)
         self.assertEqual(resumen["cobertura"], {"aciertos": 1, "denominador": 2, "tasa": 0.5})
@@ -93,7 +94,7 @@ class EvaluacionTests(unittest.TestCase):
         self.assertEqual(resumen["registros_sin_candidatos_validos"], 1)
         self.assertEqual(resumen["registros_sin_cache_candidatos"], 1)
         self.assertEqual(resumen["registros_con_error"], 0)
-        nombre = "evaluacion_titulo_mas_dominio_rapidfuzz"
+        nombre = "evaluacion_titulo_mas_dominio_levenshtein"
         self.assertTrue(os.path.isfile(os.path.join(self.salida, f"{nombre}.csv")))
         with open(os.path.join(self.salida, f"{nombre}.json"), encoding="utf-8") as archivo:
             documento = json.load(archivo)
@@ -136,7 +137,7 @@ class EvaluacionTests(unittest.TestCase):
 
         obtener_metadatos.assert_called_once_with(vieja, estricto=True)
         self.assertEqual(resumen["registros_con_error"], 1)
-        with open(os.path.join(self.salida, "evaluacion_titulo_mas_dominio_rapidfuzz.json"), encoding="utf-8") as archivo:
+        with open(os.path.join(self.salida, "evaluacion_titulo_mas_dominio_levenshtein.json"), encoding="utf-8") as archivo:
             documento = json.load(archivo)
         self.assertEqual(documento["registros"][0]["estado"], "error_metadatos")
 

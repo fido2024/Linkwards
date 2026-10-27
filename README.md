@@ -1,284 +1,171 @@
-# Pre-experimento: Objetivo Específico 2
+# Linkwards — preexperimento
 
-Prueba rápida del modelo heurístico que, ante un enlace migrado, genera un conjunto
-acotado de páginas candidatas y las ordena para identificar el recurso de reemplazo.
+Preexperimento académico para estudiar si un modelo heurístico puede recuperar la posible ubicación actual de enlaces web antiguos. Linkwards recupera metadatos históricos, genera un conjunto acotado de candidatos y los ordena con una puntuación heurística. La puntuación es un indicador de similitud, no una probabilidad estadística.
 
-Proyecto: Sistema para la Detección de Disponibilidad, Migración de Dominio e
-Inactividad en Colecciones Personales de Enlaces Web.
-Taller de Grado I, UMSS. Autor: Vasquez Carata Fidel.
+Proyecto: Sistema para la Detección de Disponibilidad, Migración de Dominio e Inactividad en Colecciones Personales de Enlaces Web. Taller de Grado I, UMSS. Autor: Vasquez Carata Fidel.
 
-## Pregunta que responde
-¿Un modelo basado en distancias de cadenas, metadatos y reglas de proximidad ubica el
-recurso de reemplazo correcto entre los primeros resultados de un conjunto acotado
-de candidatos?
+## Arquitectura
 
-## Preparar el entorno (PowerShell en Windows)
+- **Núcleo experimental:** `src/metadatos.py` consulta capturas de Internet Archive y extrae metadatos; `src/candidatos.py` construye consultas y genera candidatos con Tavily; `src/puntuacion.py` puntúa y ordena candidatos; `src/evaluacion.py` evalúa el ordenamiento contra las URL etiquetadas; `src/datos.py` lee el conjunto de enlaces y normaliza dominios.
+- **Interfaz:** `app.py` inicia la aplicación Streamlit; `src/interfaz.py` contiene la lógica de presentación y conecta la interfaz con los módulos del núcleo.
+- **Demostraciones y verificación:** `src/demostrar_metadatos.py` demuestra la consulta de metadatos; `src/demostrar_candidatos.py` demuestra la generación de candidatos; `src/verificar_enlaces.py` comprueba enlaces del conjunto y su disponibilidad actual.
+- **Pruebas:** `tests/` contiene pruebas automatizadas de metadatos, candidatos, puntuación, evaluación e interfaz.
+- **Datos y resultados:** `datos/enlaces.csv` contiene los registros etiquetados; `datos/cache/` guarda respuestas locales; `resultados/` contiene informes y salidas de demostración/verificación.
 
-Desde la carpeta del proyecto:
+## Núcleo y apoyo
 
-```bash
+El núcleo del pre-experimento está formado por `src/metadatos.py`, `src/candidatos.py`, `src/puntuacion.py`, `src/evaluacion.py` y `src/datos.py`: recupera metadatos, genera y ordena candidatos, y mide el resultado sobre el conjunto experimental. `datos/enlaces.csv` es el conjunto etiquetado de seis enlaces.
+
+`main.py` es el punto de entrada principal para la evaluación por lotes. `app.py` presenta la demostración interactiva; `src/interfaz.py` coordina la lógica que usa esa página. `src/demostrar_metadatos.py`, `src/demostrar_candidatos.py` y `src/verificar_enlaces.py` son utilidades de demostración o verificación. `tests/` comprueba el comportamiento con datos simulados.
+
+## Entorno en Windows PowerShell
+
+Desde la carpeta raíz del proyecto:
+
+```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
 
-Si PowerShell bloquea la activación, puede ejecutar los comandos sin activar el
-entorno: `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` y
-`.\.venv\Scripts\python.exe -m unittest discover -s tests`.
-
-## Fase implementada: metadatos del Internet Archive
-
-Para consultar una URL individual:
-
-```powershell
-python -c "from src.metadatos import obtener_metadatos; print(obtener_metadatos('example.org', verbose=True))"
-```
-
-El módulo consulta primero la Wayback Availability API. Si la captura más
-cercana no puede recuperarse o no contiene metadatos útiles, busca capturas
-HTML anteriores mediante CDX. La extracción recupera título, descripción y un
-fragmento de texto. Las respuestas correctas se guardan en `datos/cache/`.
-Hay tiempos máximos de espera y reintentos; no se requiere clave de búsqueda.
-
-Pruebas locales (no hacen solicitudes de red):
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-Demostración en vivo de los dos casos (requiere Internet):
-
-```powershell
-python -m src.demostrar_metadatos
-```
-
-La demostración usa una caché temporal y guarda la respuesta observada en
-`resultados/demostracion_metadatos.json`, sin reemplazar el contenido de
-`datos/cache/`. Para repetirla, vuelve a ejecutar el mismo comando. En la
-ejecución registrada en ese archivo, `example.org` devolvió una captura con
-título `Example Domain` y texto extraído; `linkwards-no-such-host.invalid` no
-tuvo captura y no produjo metadatos. Son resultados de una consulta real, no
-datos simulados; pueden cambiar si Internet Archive cambia sus capturas.
-
-## Fase de generación de candidatos (Tavily)
-
-El módulo recibe el diccionario producido por `obtener_metadatos` y, por
-defecto, crea una consulta con el título más el nombre del sitio viejo (modo
-`titulo+dominio`). También admite `titulo` y `titulo+texto`. Pide hasta
-10 resultados, valida que cada URL use HTTP o HTTPS, quita duplicados exactos
-tras normalizar esquema, host y puerto estándar, y conserva rutas o parámetros
-diferentes. No se puntúan ni reordenan resultados en esta fase.
-
-La clave se puede definir en la sesión de PowerShell o guardar como
-`TAVILY_API_KEY=tvly-...` en `.env` en la raíz del proyecto. Para definirla en
-la sesión actual:
-
-```powershell
-$env:TAVILY_API_KEY = "tvly-..."
-```
-
-`.env` está excluido por `.gitignore`; no publiques esa clave.
-
-Para repetir la búsqueda real de demostración:
-
-```powershell
-python -m src.demostrar_candidatos
-```
-
-Lee los metadatos archivados de ShareLaTeX, consulta Tavily si no existe una
-entrada de caché para la consulta y guarda la salida observada en
-`resultados/demostracion_candidatos.json`. El archivo no contiene la clave.
-Para ejecutar la fase con los enlaces del CSV:
-
-```powershell
-python -m src.candidatos
-# Selección explícita del modo
-python -m src.candidatos --modo titulo
-python -m src.candidatos --modo titulo+texto
-python -m src.candidatos --modo titulo+dominio
-```
-
-Las respuestas de búsqueda, incluso una lista vacía, se guardan en
-`datos/cache/`; una consulta cacheada no vuelve a llamar a Tavily. Los errores
-de red y HTTP 5xx, y los 429, se reintentan hasta tres veces con timeout de 30
-segundos. Las pruebas de `src.candidatos` usan respuestas simuladas y no
-consumen créditos. La demostración real registrada obtuvo 10 URLs válidas y
-únicas; la lista exacta está en el JSON enlazado arriba. `MAX_CANDIDATOS` es 10,
-dentro del máximo de 20 resultados de la [referencia oficial de Tavily](https://docs.tavily.com/documentation/api-reference/endpoint/search).
-
-## Fase 4: puntuación y ordenamiento heurístico
-
-`puntuar_candidato(original, candidato, metadatos)` devuelve una nota de 0 a
-100. No es una probabilidad estadística. Los valores predeterminados están en
-`src/puntuacion.py` y suman 1:
-
-| Componente | Peso | Cálculo |
-| --- | ---: | --- |
-| Dominio | 0.45 | `rapidfuzz.fuzz.ratio` entre los hosts normalizados (sin `www` ni rutas). |
-| Título | 0.35 | `rapidfuzz.fuzz.ratio` entre título histórico y título del candidato, si ambos existen. |
-| Proximidad | 0.20 | Señales de nombre del sitio (60%) y similitud de ruta (40%); las señales ausentes se renormalizan dentro de este componente. |
-
-Los componentes que no se pueden calcular se omiten y los pesos disponibles
-se renormalizan en el promedio final. Así, un título ausente no aporta una
-coincidencia perfecta. La comparación de rutas se mantiene separada de la de
-dominios. `ordenar_candidatos(original, candidatos, metadatos)` devuelve copias
-de los candidatos, agrega `puntuacion` y los ordena de mayor a menor; conserva
-el orden original en empates y no elimina duplicados (esa tarea ya corresponde
-a la generación de candidatos).
-
-Ejecuta todas las pruebas, incluidas las de puntuación, sin hacer llamadas a
-Tavily o Internet Archive:
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-Para volver a puntuar los candidatos guardados en la demostración de Tavily
-(requiere que los metadatos de ShareLaTeX estén en la caché de `datos/cache/`):
-
-```powershell
-python -c "import json; from src.metadatos import obtener_metadatos; from src.puntuacion import ordenar_candidatos; d=json.load(open('resultados/demostracion_candidatos.json',encoding='utf-8')); m=obtener_metadatos(d['url_historica']); r=ordenar_candidatos(d['url_historica'],d['candidatos'],m); print(chr(10).join(str((x['puntuacion'],x['url'])) for x in r))"
-```
-
-## Fase 5: evaluación experimental
-
-Ejecuta la evaluación del CSV desde PowerShell:
-
-```powershell
-python -m src.evaluacion
-```
-
-Por defecto usa solo cachés y no llama a Wayback ni a Tavily. El modo predeterminado
-es `titulo+dominio`; admite `titulo` y `titulo+texto`. Guarda detalle y resumen
-en nombres que incluyen modo y variante, como
-`resultados/evaluacion_titulo_mas_dominio_rapidfuzz.csv`. Si faltan
-cachés, los registros se marcan como pendientes y se excluyen del denominador
-de métricas; una lista de candidatos vacía sí cuenta como evaluada y como fallo.
-
-Las tasas Top-1, Top-5 y cobertura usan como denominador los registros con URLs
-utilizables, metadatos y una respuesta de candidatos disponible (incluidas las
-respuestas vacías). Los errores, metadatos ausentes, cachés ausentes y filas
-incompletas se informan aparte, no como aciertos ni como ausencia observada del
-enlace correcto. La comparación base usa el primer resultado válido del
-buscador; la comparación heurística usa el primero después de ordenar.
-
-Para permitir explícitamente búsquedas donde no haya caché:
-
-```powershell
-python -m src.evaluacion --buscar-faltantes
-```
-
-Ese modo puede consultar Internet Archive y Tavily, y Tavily puede consumir
-créditos. Para cada registro sin caché se hace una búsqueda lógica. El cliente
-de Tavily puede repetir una petición hasta tres intentos ante errores de red,
-HTTP 429 o 5xx; por ello, cinco registros pendientes pueden producir hasta 15
-peticiones HTTP. Las pruebas unitarias de evaluación usan candidatos simulados
-en carpetas temporales y no realizan conexiones externas.
-
-Para comparar los tres modos con Levenshtein y permitir consultas de Tavily
-solo cuando la caché de ese modo no exista:
-
-```powershell
-python -m src.evaluacion --modo titulo --variante levenshtein --buscar-faltantes
-python -m src.evaluacion --modo titulo+dominio --variante levenshtein --buscar-faltantes
-python -m src.evaluacion --modo titulo+texto --variante levenshtein --buscar-faltantes
-```
-
-Los archivos se nombran `evaluacion_{modo}_levenshtein.csv` y `.json` (el signo
-`+` del modo se representa como `_mas_`). La caché se separa por consulta/modo;
-una respuesta existente se reutiliza sin volver a consultar Tavily.
-
-### Ejecución real registrada con caché y búsquedas faltantes
-
-El 2026-10-23 se ejecutó `python -m src.evaluacion --buscar-faltantes`. Antes
-de ejecutarlo, había seis filas con URLs utilizables, metadatos en caché,
-candidatos para el ID 2 y faltaban candidatos para los IDs 1, 3, 4, 5 y 6.
-La clave de Tavily estaba configurada y el servicio aceptó las búsquedas. No se
-registra ni se imprime el secreto. Se guardaron los resultados obtenidos en la
-caché; la evaluación terminó con seis registros evaluables y cero errores.
-
-| Métrica | Orden original del buscador | Después del reordenamiento |
-| --- | ---: | ---: |
-| Top-1 | 0/6 (0 %) | 2/6 (33,3 %) |
-| Top-5 | 2/6 (33,3 %) | 2/6 (33,3 %) |
-| Cobertura de la URL correcta entre candidatos | 2/6 (33,3 %) | 2/6 (33,3 %) |
-
-La URL correcta faltó en 4/6 registros (IDs 2, 3, 5 y 6). En los otros dos
-casos sí estaba en la lista: el buscador la ubicó en posiciones 3 (ID 1) y 2
-(ID 4), y el reordenamiento la colocó en posición 1 en ambos. Entre los seis
-registros, el heurístico cambió el primer candidato en 6/6 casos. Esto muestra
-una mejora de Top-1 en este conjunto pequeño, sin cambio en Top-5; la cobertura
-limitada a 2/6 y el tamaño de muestra no permiten afirmar que el método mejore
-el buscador de forma general. Los registros de salida están en
-`resultados/evaluacion_candidatos.csv` y `.json`.
-
-El CSV usa punto y coma o coma; el lector detecta ambos. Las columnas previstas
-son `url_vieja`, `url_nueva_correcta` y `tipo_cambio` (el conjunto actual además
-tiene `id` y `notas`). No reemplazar el conjunto con filas ficticias.
-
-## Estructura
-- `datos/enlaces.csv`: conjunto de prueba (URL vieja, URL nueva correcta, tipo de cambio).
-- `datos/cache/`: respuestas guardadas del Internet Archive y del buscador.
-- `src/metadatos.py`: Fase 2, recuperación de título y texto desde el Internet Archive.
-- `src/demostrar_metadatos.py`: demostración reproducible con un caso con captura y otro sin ella.
-- `src/candidatos.py`: Fase 3, generación acotada de candidatos (top 10).
-- `src/demostrar_candidatos.py`: consulta real reproducible y salida de demostración sin secretos.
-- `src/puntuacion.py`: Fase 4, puntuación heurística y ordenamiento.
-- `src/evaluacion.py`: Fase 5, comparación Top-1, Top-5, cobertura, cambio del primer resultado y tiempo.
-- `resultados/`: tablas generadas por la evaluación.
-
-## Alcance
-Las fases de metadatos, generación de candidatos, puntuación heurística y
-evaluación experimental están implementadas. La evaluación actual es pequeña y
-exploratoria; no equivale a una validación estadística general.
-
-## Interfaz web del prototipo
-
-Streamlit está incluido en `requirements.txt`. Desde PowerShell, instala las
-dependencias y arranca la interfaz local:
-
-```powershell
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
-```
-
-O, sin activar el entorno virtual:
+Si PowerShell impide activar el entorno, usa directamente el intérprete del entorno:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-La búsqueda empieza únicamente al pulsar **Recuperar URL**. El proceso usa
-`obtener_metadatos`, `generar_candidatos` y `ordenar_candidatos`; por tanto,
-conserva las cachés existentes. Si no hay candidatos cacheados, la generación
-puede llamar a Tavily y consumir créditos. La clave se lee de
-`TAVILY_API_KEY` o `.env`, no se solicita ni se presenta en la interfaz.
+## Puntos de entrada
 
-La sección de evaluación lee `resultados/evaluacion_candidatos.json` sin
-ejecutar la evaluación ni recalcular sus métricas. Los denominadores y el
-resumen de cobertura ausente se presentan junto a Top-1 y Top-5. La puntuación
-de cada candidato es heurística, no una probabilidad estadística.
-
-## Variante Levenshtein para comparación
-
-La línea base sigue siendo `rapidfuzz.fuzz.ratio`. Para una evaluación
-comparativa local que reutiliza únicamente metadatos y candidatos cacheados,
-ejecuta desde PowerShell:
+### Evaluación por lotes con configuración predeterminada
 
 ```powershell
-python -m src.evaluacion --variante levenshtein --resultados resultados
+python main.py
 ```
 
-La variante usa `rapidfuzz.distance.Levenshtein.distance` y convierte la
-distancia en similitud con `100 * (1 - distancia / max(longitud_a,
-longitud_b))`. Si ambas cadenas están vacías, la función devuelve 100; si solo
-una está vacía, devuelve 0. En el cálculo de puntuación, los datos vacíos se
-omiten y los pesos disponibles se renormalizan, igual que en la línea base.
-Ambas variantes conservan los pesos y reglas de proximidad actuales.
+`main.py` evalúa `datos/enlaces.csv` en la carpeta `resultados/`, imprime el modo y la variante al inicio y usa `titulo+dominio` con Levenshtein. La ejecución es cache-only: si faltan cachés, esos registros se informan como pendientes y no se buscan automáticamente.
 
-La ejecución normal es cache-only: no usar `--buscar-faltantes` para esta
-comparación. Los resultados anteriores de Levenshtein se conservan; las nuevas
-salidas incluyen el modo en el nombre. Los archivos
-`resultados/evaluacion_candidatos.csv` y `.json` permanecen como línea base de
-la interfaz y de la evaluación inicial.
+### Evaluación con opciones de línea de comandos
+
+```powershell
+python -m src.evaluacion --help
+```
+
+Las opciones confirmadas en el parser son:
+
+- `--csv`: CSV de entrada; predeterminado `datos/enlaces.csv`.
+- `--resultados`: carpeta de salida; predeterminada `resultados`.
+- `--variante`: `levenshtein` (predeterminada) o `rapidfuzz`.
+- `--modo`: `titulo` (solo título), `titulo+dominio` (predeterminado) o `titulo+texto`.
+- `--buscar-faltantes`: permite consultar Internet Archive o Tavily si falta una respuesta cacheada. Puede generar tráfico externo y consumir créditos de Tavily.
+
+Comando exacto para reproducir la evaluación de referencia con las cachés disponibles (no activa búsquedas faltantes):
+
+```powershell
+python -m src.evaluacion --modo titulo+dominio --variante levenshtein
+```
+
+RapidFuzz sigue disponible si se selecciona explícitamente. Añadir `--buscar-faltantes` permite completar cachés y puede realizar solicitudes externas:
+
+```powershell
+python -m src.evaluacion --modo titulo+dominio --variante rapidfuzz --buscar-faltantes
+```
+
+La evaluación escribe archivos de salida con nombres derivados del modo y variante, por ejemplo `evaluacion_titulo_mas_dominio_rapidfuzz.csv` y `.json`. Evita ejecutar evaluaciones sobre una carpeta de resultados que necesites preservar, ya que el mismo nombre de salida se vuelve a escribir.
+
+### Interfaz interactiva
+
+```powershell
+python -m streamlit run app.py
+```
+
+La interfaz lee el informe experimental existente `resultados/evaluacion_candidatos.json`; no recalcula esas métricas al cargar la página. La recuperación de una URL solo empieza cuando se solicita desde la interfaz. Si no hay candidatos en caché, la generación puede consultar Tavily.
+
+## Algoritmo de puntuación
+
+`src/puntuacion.py` combina tres componentes con pesos predeterminados que suman 1:
+
+| Componente | Peso | Señal |
+| --- | ---: | --- |
+| Dominio | 0.45 | Similitud entre hosts normalizados, sin comparar las rutas. |
+| Título | 0.35 | Similitud entre el título histórico y el título del candidato, si ambos están disponibles. |
+| Proximidad | 0.20 | Nombre del sitio (60% del componente) y similitud de ruta significativa (40%). |
+
+La variante predeterminada en los puntos de entrada del proyecto (`main.py`, evaluación CLI e interfaz) es `levenshtein`, que aplica distancia Levenshtein explícita y la normaliza a similitud de 0 a 100. `rapidfuzz.fuzz.ratio` sigue disponible como opción explícita y como valor predeterminado de las funciones de puntuación de bajo nivel. Ambas variantes conservan los mismos pesos y la regla binaria del nombre del sitio.
+
+Las señales ausentes no se cuentan como coincidencias. Si falta una señal de proximidad, se renormalizan las señales disponibles dentro de proximidad; si falta un componente completo, se omite y se renormalizan los pesos de los componentes presentes. La nota final es una heurística de similitud, no una probabilidad de que el candidato sea la URL correcta.
+
+## Demostraciones y verificación
+
+Estos comandos ejecutan código que puede hacer solicitudes externas. No los ejecutes si necesitas una sesión estrictamente offline.
+
+```powershell
+python -m src.demostrar_metadatos
+python -m src.demostrar_candidatos
+python -m src.verificar_enlaces
+```
+
+- `src.demostrar_metadatos` consulta Internet Archive para los casos definidos en el módulo y guarda la observación en `resultados/demostracion_metadatos.json`. Usa una caché temporal para la demostración.
+- `src.demostrar_candidatos` obtiene metadatos para el caso de demostración y llama a la generación de candidatos. Puede consultar Internet Archive y Tavily si no hay cachés correspondientes. Guarda la salida en `resultados/demostracion_candidatos.json`.
+- `src.verificar_enlaces` consulta Internet Archive y abre las URL antigua y esperada; guarda los resultados en `resultados/verificacion.csv`. Esa salida se vuelve a escribir al ejecutar el comando.
+
+Las salidas documentan observaciones de ejecuciones anteriores; una nueva ejecución puede producir resultados diferentes.
+
+## Configuración de Tavily
+
+El cliente busca la variable `TAVILY_API_KEY` en el entorno del proceso o en el archivo `.env` de la raíz del proyecto. Configúrala localmente antes de una operación que requiera una consulta nueva. No incluyas el valor de la clave en el código, informes, capturas o repositorio. El archivo `.env` está excluido por `.gitignore`.
+
+Para la sesión actual de PowerShell, define la variable sin guardar el secreto en el README:
+
+```powershell
+$env:TAVILY_API_KEY = "<tu-clave>"
+```
+
+Las claves no son necesarias para ejecutar pruebas unitarias o una evaluación que pueda resolverse íntegramente con caché.
+
+## Caché y reproducibilidad
+
+`datos/cache/` contiene respuestas locales de metadatos y candidatos. El directorio está excluido de Git (excepto el archivo `.gitkeep`), por lo que sus contenidos locales no se incorporan al repositorio de forma normal ni están disponibles necesariamente en otro equipo o clon.
+
+La evaluación predeterminada no realiza solicitudes para completar cachés. Si falta la caché de metadatos o candidatos, el registro queda sin evaluar por esa causa y no forma parte del denominador de las métricas. Una respuesta cacheada vacía sí representa una respuesta observada y se contabiliza como registro evaluado sin candidatos. `--buscar-faltantes` permite consultas externas para completar respuestas ausentes.
+
+Los informes guardados en `resultados/` registran ejecuciones anteriores, pero no equivalen a recalcular el experimento. En un clon limpio, como `datos/cache/` no está versionada, la evaluación cache-only puede omitir registros; no se puede afirmar que el experimento se reproduzca sin conexión sin proporcionar las cachés necesarias. Los informes tampoco contienen necesariamente todas las respuestas de caché empleadas.
+
+## Resultados experimentales guardados
+
+Los CSV de evaluación existentes contienen seis filas cada uno. La tabla resume los JSON correspondientes; todas las métricas usan el denominador de seis registros evaluables en estos archivos. “Buscador” conserva el orden original y “modelo” es el orden después de puntuar. La URL correcta se identifica en el código por igualdad exacta del dominio normalizado entre candidato y destino esperado (se ignora `www.`), no por igualdad de la URL completa. Por eso, “cobertura” indica que aparece un candidato del dominio esperado, no que se haya identificado la página exacta de reemplazo.
+
+| Informe | Modo | Variante identificada en JSON | Buscador Top-1 | Buscador Top-5 | Modelo Top-1 | Modelo Top-5 | Cobertura de dominio |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `evaluacion_candidatos.json` | `titulo+texto` | No indicada | 0/6 | 2/6 | 2/6 | 2/6 | 2/6 |
+| `evaluacion_titulo_levenshtein.json` | `titulo` | Levenshtein | 0/6 | 4/6 | 2/6 | 5/6 | 5/6 |
+| `evaluacion_titulo_mas_dominio_levenshtein.json` | `titulo+dominio` | Levenshtein | 0/6 | 4/6 | 2/6 | 6/6 | 6/6 |
+| `evaluacion_titulo_mas_texto_levenshtein.json` | `titulo+texto` | Levenshtein | 0/6 | 2/6 | 2/6 | 2/6 | 2/6 |
+| `evaluacion_levenshtein.json` | `titulo+texto` | Levenshtein | 0/6 | 2/6 | 2/6 | 2/6 | 2/6 |
+
+`evaluacion_candidatos.json` incluye el modo `titulo+texto` y `buscar_faltantes: true`, pero no identifica la variante de puntuación; no debe etiquetarse retrospectivamente como RapidFuzz o Levenshtein sin evidencia adicional. `evaluacion_levenshtein.json` es un informe distinto, con variante Levenshtein y modo `titulo+texto` registrados en el resumen.
+
+Los resultados por modo y variante se deben leer como informes separados; no son intercambiables ni deben combinarse. Los JSON incluyen los resúmenes agregados. Los CSV correspondientes guardan el detalle por enlace.
+
+### Definición de las métricas
+
+Según `src/evaluacion.py`, Top-1 cuenta los registros evaluables donde el primer candidato (buscador o modelo reordenado) tiene el dominio esperado. Top-5 cuenta aquellos donde ese dominio aparece hasta la posición cinco en el orden correspondiente. La cobertura cuenta si aparece en cualquier posición de la lista. Las tres tasas dividen sus aciertos entre registros con URL antigua y destino utilizables, metadatos disponibles y respuesta de candidatos disponible; una respuesta vacía cuenta como evaluada sin acierto. Cachés faltantes, errores y registros incompletos se informan aparte y se excluyen del denominador.
+
+## Pruebas automatizadas
+
+El directorio `tests/` usa el estilo de `unittest` de la biblioteca estándar de Python:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+Las dependencias de `requirements.txt` no incluyen `pytest`; `unittest` no requiere instalar un paquete adicional. Las pruebas de red usan respuestas simuladas o reemplazan las funciones de acceso externo.
+
+## Limitaciones conocidas
+
+- El acierto se mide por igualdad del dominio normalizado, no por igualdad de la URL exacta. Puede contar una página distinta del mismo dominio como acierto.
+- La muestra contiene seis enlaces; los resultados son exploratorios y no permiten generalizar a colecciones grandes.
+- La nota del ID 1 en `datos/enlaces.csv` indica que la URL nueva todavía no tiene confirmación oficial.
+- La regla del nombre del sitio puede favorecer candidatos que conservan el nombre viejo. En el ejemplo ShareLaTeX, el sitio de una universidad que aún dice ShareLaTeX obtiene 72,37, mientras que `overleaf.com` obtiene 45,25.
+- El método compara cadenas y metadatos; no comprende el significado de los textos. Es una heurística, no un emparejamiento semántico en sentido estricto.
+- Los informes dependen de las capturas, consultas, respuestas y cachés disponibles. `datos/cache/` está excluida de Git, de modo que un clon limpio puede no reproducir una evaluación cache-only.
+- La evaluación no simula usuarios autenticados ni carga multiusuario; los tiempos cache-only no representan latencia de los servicios externos.

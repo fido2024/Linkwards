@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 from src import candidatos, metadatos
 from src.datos import dominio
-from src.puntuacion import ordenar_candidatos
+from src.puntuacion import VARIANTES, ordenar_candidatos
 
 
 def validar_url(valor):
@@ -40,14 +40,25 @@ def validar_url(valor):
     return partes._replace(scheme=partes.scheme.lower(), netloc=netloc).geturl()
 
 
-def recuperar(url_entrada):
-    """Recupera metadatos, candidatos y orden heurístico para una URL."""
+def recuperar(url_entrada, variante="rapidfuzz", url_metadatos=None):
+    """Recupera metadatos, candidatos y orden heurístico para una URL.
+
+    `url_metadatos` permite conservar la forma original de una URL conocida
+    (por ejemplo, la forma sin esquema almacenada en el CSV) al consultar la
+    caché de metadatos, cuya clave se calcula sobre el texto exacto.
+    """
     url = validar_url(url_entrada)
     if not url:
         return {"estado": "url_invalida", "detalle": "Introduce una URL HTTP o HTTPS válida."}
+    if variante not in VARIANTES:
+        raise ValueError(f"Variante desconocida: {variante}. Usa una de: {', '.join(VARIANTES)}")
+
+    url_metadatos = url_metadatos if url_metadatos is not None else url
+    if validar_url(url_metadatos) != url:
+        return {"estado": "url_invalida", "detalle": "La URL de metadatos no coincide con la URL seleccionada."}
 
     try:
-        meta = metadatos.obtener_metadatos(url, estricto=True)
+        meta = metadatos.obtener_metadatos(url_metadatos, estricto=True)
     except metadatos.ErrorConexionInternetArchive:
         return {
             "estado": "error_conexion_archive",
@@ -94,10 +105,11 @@ def recuperar(url_entrada):
             "candidatos": [],
         }
 
-    ordenados = ordenar_candidatos(url, items, meta)
+    ordenados = ordenar_candidatos(url, items, meta, variante=variante)
     return {
         "estado": "completado",
         "detalle": "Recuperación completada.",
+        "variante": variante,
         "metadatos": meta,
         "candidatos": ordenados,
     }
